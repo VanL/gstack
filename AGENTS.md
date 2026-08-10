@@ -32,6 +32,7 @@ Invoke them by name (e.g., `/office-hours`).
 | `/write-skill` | Write or improve an agent skill without bloat: edit ladder, size per level (`gstack-skill-bill`), skill-to-bin drift check, full diets with a before/after test. |
 | `/test-audit` | Sweep existing tests for low-value, implementation-coupled or duplicate tests. Report-only unless you approve a batch. |
 | `/codex` | Second opinion via OpenAI Codex. Review, challenge, or consult modes. Available outside the Codex harness. |
+| `/grok` | Second opinion via xAI Grok Build. Review, challenge, or consult modes. |
 | `/claude-code` | Second opinion via Claude Code. Review, challenge, or consult modes. Available outside the Claude Code harness. |
 | `/investigate` | Systematic root-cause debugging. No fixes without investigation. |
 | `/design-review` | Live-site visual audit + fix loop with atomic commits. |

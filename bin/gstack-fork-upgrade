@@ -1,0 +1,235 @@
+#!/usr/bin/env bash
+# Upgrade the canonical ~/.agents gstack install with upstream's own
+# bin/gstack-upgrade, refresh host links, and reapply this fork's local
+# overlay (the /grok skill, which upstream does not ship). Overlay files stay
+# untracked in the install, and any tracked file the overlay's regeneration
+# touches is restored, so upstream's updaters always see a clean checkout.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
+
+# Untracked files this helper owns inside the install. They are removed before
+# upstream fast-forwards (so a release that starts tracking one is never
+# blocked) and reinstalled afterwards unless upstream now tracks them.
+OVERLAY_PATHS=(bin/gstack-fork-upgrade grok/SKILL.md.tmpl grok/SKILL.md)
+
+# The pre-rename helper replaced upstream's bin/gstack-upgrade and recorded
+# its tracked edits here.
+LEGACY_MANIFEST=.gstack-upgrade-overlay-manifest
+
+is_tracked() {
+  git -C "$1" ls-files --error-unmatch -- "$2" >/dev/null 2>&1
+}
+
+tracked_dirt() {
+  git -C "$1" status --porcelain --untracked-files=no | cut -c4-
+}
+
+grok_overlay_source() {
+  if [ -f "$SCRIPT_DIR/local-overlays/grok/SKILL.md.tmpl" ]; then
+    printf '%s\n' "$SCRIPT_DIR/local-overlays/grok/SKILL.md.tmpl"
+  elif [ -f "$SCRIPT_DIR/../grok/SKILL.md.tmpl" ]; then
+    printf '%s\n' "$SCRIPT_DIR/../grok/SKILL.md.tmpl"
+  else
+    echo "gstack-fork-upgrade: local Grok overlay source is missing" >&2
+    return 1
+  fi
+}
+
+link_vendor_roots() {
+  local install_dir="$1"
+  local vendor_root target resolved
+  for vendor_root in "$HOME/.claude/skills" "$HOME/.codex/skills"; do
+    mkdir -p "$vendor_root"
+    target="$vendor_root/gstack"
+    if [ -L "$target" ]; then
+      ln -sfn "$install_dir" "$target"
+    elif [ ! -e "$target" ]; then
+      ln -s "$install_dir" "$target"
+    elif [ -d "$target" ]; then
+      resolved="$(cd "$target" 2>/dev/null && pwd -P || true)"
+      if [ "$resolved" != "$(cd "$install_dir" && pwd -P)" ]; then
+        echo "warning: preserving existing non-symlink vendor root at $target" >&2
+      fi
+    else
+      echo "warning: preserving existing vendor path at $target" >&2
+    fi
+  done
+}
+
+run_setup() {
+  local install_dir="$1"
+  local alias_dir
+  alias_dir="$(mktemp -d "${TMPDIR:-/tmp}/gstack-fork-upgrade-setup-XXXXXX")"
+  ln -s "$install_dir" "$alias_dir/gstack"
+  if ! "$alias_dir/gstack/setup" --host auto --plan-tune-hooks=prompt </dev/null; then
+    rm -rf "$alias_dir"
+    return 1
+  fi
+  rm -rf "$alias_dir"
+}
+
+# Put back tracked files the pre-rename helper changed, when they still hold
+# exactly what it wrote. Anything edited since is left for upstream's updater
+# to report.
+restore_legacy_overlay() {
+  local install_dir="$1"
+  local manifest expected relative target actual
+  manifest="$install_dir/$LEGACY_MANIFEST"
+  [ -f "$manifest" ] || return 0
+  while IFS=$'\t' read -r expected relative; do
+    [ -n "$expected" ] && [ -n "$relative" ] || continue
+    case "$relative" in
+      /*|../*|*/../*) continue ;;
+    esac
+    target="$install_dir/$relative"
+    if [ "$expected" = "MISSING" ]; then
+      [ ! -e "$target" ] || continue
+    else
+      [ -f "$target" ] || continue
+      actual="$(git hash-object "$target" 2>/dev/null || true)"
+      [ "$actual" = "$expected" ] || continue
+    fi
+    git -C "$install_dir" checkout -q HEAD -- "$relative" 2>/dev/null || true
+  done < "$manifest"
+  rm -f "$manifest" "$install_dir/bin/gstack-upgrade-overlays.ts"
+}
+
+remove_overlay() {
+  local install_dir="$1"
+  local relative
+  for relative in "${OVERLAY_PATHS[@]}"; do
+    is_tracked "$install_dir" "$relative" || rm -f "$install_dir/$relative"
+  done
+  rmdir "$install_dir/grok" 2>/dev/null || true
+}
+
+apply_grok_overlay() {
+  local install_dir="$1"
+  local source target
+  target="$install_dir/grok/SKILL.md.tmpl"
+
+  # Once official upstream tracks Grok, it owns the skill.
+  if is_tracked "$install_dir" grok/SKILL.md.tmpl; then
+    echo "GROK_OVERLAY=preserved-upstream"
+    return
+  fi
+  source="$(grok_overlay_source)"
+  mkdir -p "$(dirname "$target")"
+  if [ -f "$target" ] && [ "$(cd "$(dirname "$source")" && pwd -P)" = "$(cd "$(dirname "$target")" && pwd -P)" ]; then
+    echo "GROK_OVERLAY=local-current"
+    return
+  fi
+  cp "$source" "$target"
+  echo "GROK_OVERLAY=installed-local"
+}
+
+install_overlay_files() {
+  local install_dir="$1"
+  mkdir -p "$install_dir/bin"
+  if [ "$SCRIPT_DIR" != "$(cd "$install_dir/bin" && pwd -P)" ]; then
+    cp "$SCRIPT_DIR/gstack-fork-upgrade" "$install_dir/bin/gstack-fork-upgrade"
+  fi
+  chmod +x "$install_dir/bin/gstack-fork-upgrade"
+}
+
+apply_overlay() {
+  local install_dir="$1"
+  local dirt_before relative
+  dirt_before="$(tracked_dirt "$install_dir")"
+
+  install_overlay_files "$install_dir"
+  apply_grok_overlay "$install_dir"
+
+  # Setup always regenerates Codex output, but Claude's canonical SKILL.md
+  # files need an explicit pass to pick up the overlay template.
+  if [ -f "$install_dir/scripts/gen-skill-docs.ts" ]; then
+    (cd "$install_dir" && bun run gen:skill-docs --host claude)
+  fi
+  run_setup "$install_dir"
+
+  # Aggregates such as gstack/llms.txt now list /grok. Restore them so the
+  # checkout stays clean for upstream's fast-forward-only updaters.
+  while IFS= read -r relative; do
+    [ -n "$relative" ] || continue
+    printf '%s\n' "$dirt_before" | grep -qxF -- "$relative" && continue
+    git -C "$install_dir" checkout -q HEAD -- "$relative"
+  done < <(tracked_dirt "$install_dir")
+}
+
+upgrade_canonical_install() {
+  local install_dir clone_url old_version new_version upgrade_status
+  install_dir="${GSTACK_INSTALL_DIR:-$HOME/.agents/skills/gstack}"
+  clone_url="${GSTACK_UPGRADE_REPO_URL:-https://github.com/garrytan/gstack.git}"
+  upgrade_status=0
+
+  mkdir -p "$(dirname "$install_dir")"
+  if [ ! -e "$install_dir" ]; then
+    git clone --depth 1 "$clone_url" "$install_dir"
+    old_version="unknown"
+    run_setup "$install_dir"
+  elif [ -d "$install_dir/.git" ]; then
+    old_version="$(cat "$install_dir/VERSION" 2>/dev/null || echo unknown)"
+    restore_legacy_overlay "$install_dir"
+    remove_overlay "$install_dir"
+    # Upstream owns the move: fast-forward only, refusing on local edits,
+    # diverged commits, or live sessions, then its own reinstall. Run it from
+    # the install so it certifies no caller project.
+    (cd "$install_dir" && ./bin/gstack-upgrade) || upgrade_status=$?
+  else
+    echo "gstack-fork-upgrade: $install_dir is not a git checkout; move it aside and re-run to clone a fresh install" >&2
+    exit 1
+  fi
+
+  # Reapply the overlay whatever upstream decided, so a refused upgrade still
+  # leaves the install with /grok.
+  link_vendor_roots "$install_dir"
+  apply_overlay "$install_dir"
+
+  new_version="$(cat "$install_dir/VERSION" 2>/dev/null || echo unknown)"
+  if [ "$upgrade_status" -eq 0 ]; then
+    mkdir -p "$HOME/.gstack"
+    case "$old_version" in
+      unknown|"$new_version") ;;
+      *) echo "$old_version" > "$HOME/.gstack/just-upgraded-from" ;;
+    esac
+    rm -f "$HOME/.gstack/last-update-check" "$HOME/.gstack/update-snoozed"
+  fi
+
+  echo "GSTACK_UPGRADE_INSTALL_DIR=$install_dir"
+  echo "GSTACK_UPGRADE_OLD_VERSION=$old_version"
+  echo "GSTACK_UPGRADE_NEW_VERSION=$new_version"
+  if [ "$upgrade_status" -ne 0 ]; then
+    echo "gstack-fork-upgrade: upstream bin/gstack-upgrade exited $upgrade_status; the overlay was reapplied to the current install" >&2
+    exit "$upgrade_status"
+  fi
+}
+
+case "${1:-}" in
+  --overlay-only)
+    install_dir="${2:-${GSTACK_INSTALL_DIR:-$HOME/.agents/skills/gstack}}"
+    apply_overlay "$install_dir"
+    ;;
+  -h|--help)
+    echo "usage: gstack-fork-upgrade [--overlay-only [<install-dir>]]"
+    ;;
+  "")
+    # remove_overlay deletes this script and its Grok source when they live in
+    # the install. Run from temporary copies so both survive the upgrade.
+    if [ "${GSTACK_UPGRADE_TRAMPOLINED:-0}" != "1" ]; then
+      trampoline_dir="$(mktemp -d "${TMPDIR:-/tmp}/gstack-fork-upgrade-run-XXXXXX")"
+      cp "$SCRIPT_DIR/gstack-fork-upgrade" "$trampoline_dir/gstack-fork-upgrade"
+      mkdir -p "$trampoline_dir/local-overlays/grok"
+      cp "$(grok_overlay_source)" "$trampoline_dir/local-overlays/grok/SKILL.md.tmpl"
+      chmod +x "$trampoline_dir/gstack-fork-upgrade"
+      GSTACK_UPGRADE_TRAMPOLINED=1 GSTACK_UPGRADE_TRAMPOLINE_DIR="$trampoline_dir" \
+        exec "$trampoline_dir/gstack-fork-upgrade"
+    fi
+    trap 'rm -rf "${GSTACK_UPGRADE_TRAMPOLINE_DIR:-}"' EXIT
+    upgrade_canonical_install
+    ;;
+  *)
+    echo "gstack-fork-upgrade: unknown argument: $1" >&2
+    exit 2
+    ;;
+esac

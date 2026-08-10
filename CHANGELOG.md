@@ -7960,7 +7960,39 @@ The orphan fix matters beyond one eval: any timed-out `claude -p` child that lea
 #### For contributors
 
 - TODOS.md: filed the periodic-CI coverage decision: `evals-periodic.yml` runs 9 of ~66 e2e files, so ~57 run only when local diff-selection happens to pick them, which is how this eval rotted unnoticed.
+## [1.59.3.0] - 2026-07-03
 
+## **`/grok` adds xAI Grok Build as another outside voice for review, challenge, and consult.**
+
+gstack already had `/codex` for OpenAI outside review and `/claude` for external
+hosts that want Claude's read. This release adds the xAI side: `/grok review`,
+`/grok challenge`, and `/grok <question>` run Grok Build against the repo without
+turning it into an implementer. Review and challenge mode embed the diff and run
+with no tools. Consult mode keeps Grok in plan permission mode, disables
+subagents, and denies shell/write tools.
+
+The point is not to collect more model opinions for their own sake. The point is
+to expose disagreement. If Claude, Codex, and Grok all point at the same failure
+mode, treat it as high signal. If they disagree, the branch now gives you one
+more lens before you decide what to fix.
+
+### Itemized changes
+
+#### Added
+
+- `grok/SKILL.md.tmpl`: new `/grok` skill with review, challenge, and consult modes.
+- Review/challenge mode uses `grok --no-auto-update --no-alt-screen --permission-mode plan --no-subagents --tools ""` with the diff embedded in the prompt.
+- Consult mode uses the same plan-mode boundary and denies `Bash`, `Edit`, and `Write`.
+- `/grok` supports Grok's configured default model, optional `-m`/`--model`, and `--xhigh` via `grok-build --effort xhigh`.
+
+#### Changed
+
+- README, AGENTS, CLAUDE project structure, and `docs/skills.md` now list `/grok` with the other multi-AI skills.
+
+#### For contributors
+
+- The skill coverage matrix includes `/grok` at the free structural floor.
+- Generator and skill-validation tests assert the generated Grok skill exists and preserves the read-only/tool-less boundary in Claude and external-host output.
 ## [1.58.5.0] - 2026-06-21
 
 ## **A fresh install now lands on a concrete first move, not a dead end.**

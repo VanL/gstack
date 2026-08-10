@@ -51,6 +51,7 @@ Detailed guides for every gstack skill — philosophy, workflow, and examples.
 | | | |
 | **Multi-AI** | | |
 | [`/codex`](#codex) | **Second Opinion** | OpenAI Codex review, challenge, and consultation. Available outside the Codex harness. |
+| [`/grok`](#grok) | **Grok Outside Voice** | Independent review from xAI Grok Build CLI. Three modes: code review, adversarial challenge, and read-only consultation with session continuity. |
 | [`/claude-code`](#claude-code) | **Second Opinion** | Claude Code review, challenge, and consultation. Available outside the Claude Code harness; used for automatic outside reviews in Codex. |
 | [`/pair-agent`](#browse) | **Remote Agent Bridge** | Pair a remote AI agent (OpenClaw, Codex, Cursor, Hermes) with gstack's own browser. Scoped tunnel, locked allowlist, session token. Fallback-browser skill; agents driving Aside open their own tabs. |
 | [`/setup-gbrain`](#setup-gbrain) | **Memory Sync** | Set up gbrain for cross-machine session memory sync. One command from zero to live. |
@@ -1373,6 +1374,33 @@ Claude: Running independent Codex review...
         UNIQUE TO CODEX: Token comparison timing attack
         UNIQUE TO CLAUDE: N+1 query in listing photos
 ```
+
+---
+
+## `/grok`
+
+This is the xAI outside voice.
+
+`/grok` mirrors the `/codex` shape for Grok Build: review the current diff,
+challenge it adversarially, or ask a read-only consultation question about the
+repo. Review and challenge mode embed the diff in the prompt and run Grok with
+no tools. Consult mode denies shell and write tools so Grok can inspect without
+implementing.
+
+Use it when you want a third model family on the same branch. The useful part is
+not that Grok is automatically right. It is that disagreement forces you to name
+which risk model you trust and why.
+
+### Three modes
+
+**Review** - run Grok against the current diff. It marks `[P1]` blocking issues,
+`[P2]` advisory issues, and ends with a recommendation.
+
+**Challenge** - adversarial mode. Grok looks for failure modes, race conditions,
+security holes, and operational edge cases.
+
+**Consult** - ask Grok a question about the repository. It runs with
+`--permission-mode plan`, no subagents, and explicit Bash/Edit/Write denials.
 
 ---
 

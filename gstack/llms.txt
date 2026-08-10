@@ -33,6 +33,7 @@ Conventions:
 - [/document-release](document-release/SKILL.md): Release documentation audit.
 - [/eval-plan](eval-plan/SKILL.md): Preregister a paid eval (bars, arms, decoys, stop rules), dry-run it at zero cost, then run a three-item priced pilot whose spend table gates approval.
 - [/freeze](freeze/SKILL.md): Restrict file edits to a specific directory for the session.
+- [/grok](grok/SKILL.md): xAI Grok Build CLI wrapper - three modes.
 - [/gstack](SKILL.md): Router for the gstack skill suite.
 - [/gstack-upgrade](gstack-upgrade/SKILL.md): Upgrade gstack to the latest version.
 - [/guard](guard/SKILL.md): Full safety mode: destructive command warnings + directory-scoped edits.

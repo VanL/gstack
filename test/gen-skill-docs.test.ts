@@ -3037,6 +3037,18 @@ describe('Codex generation (--host codex)', () => {
     expect(fs.existsSync(path.join(AGENTS_DIR, 'gstack-claude'))).toBe(false);
   });
 
+  test('Codex output includes Grok outside-voice skill with read-only boundary', () => {
+    const content = readExternalSkillUnion(EXTERNAL_OUT, '.agents', 'grok');
+    expect(content).toContain('grok --no-auto-update');
+    expect(content).toContain('--no-alt-screen');
+    expect(content).toContain('--permission-mode plan');
+    expect(content).toContain('--no-subagents');
+    expect(content).toContain('--tools ""');
+    expect(content).toContain('--deny Bash --deny Edit --deny Write');
+    expect(content).toContain('--prompt-file "$PROMPT_FILE"');
+    expect(content).toContain('Never pass `--always-approve`');
+  });
+
   test('Codex ship and review preserve outside review through Claude Code', () => {
     for (const skill of ['ship', 'review']) {
       const content = readExternalSkillUnion(EXTERNAL_OUT, '.agents', skill);
@@ -3516,6 +3528,17 @@ describe('Parameterized host smoke tests', () => {
           expect(content).toMatch(/^name:\s/m);
           expect(content).toMatch(/^description:\s/m);
         }
+      });
+
+      test('generates Grok outside-voice skill for external hosts', () => {
+        const skillMd = path.join(hostDir, 'gstack-grok', 'SKILL.md');
+        expect(fs.existsSync(skillMd)).toBe(true);
+        const content = fs.readFileSync(skillMd, 'utf-8');
+        expect(content).toContain('grok --no-auto-update');
+        expect(content).toContain('--permission-mode plan');
+        expect(content).toContain('--no-subagents');
+        expect(content).toContain('--tools ""');
+        expect(content).toContain('--deny Bash --deny Edit --deny Write');
       });
 
       test('--dry-run freshness check passes', () => {

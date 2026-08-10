@@ -1769,6 +1769,41 @@ describe('Codex skill', () => {
   });
 });
 
+// --- Grok skill validation ---
+
+describe('Grok skill', () => {
+  test('grok/SKILL.md exists and has correct frontmatter', () => {
+    const content = fs.readFileSync(path.join(ROOT, 'grok', 'SKILL.md'), 'utf-8');
+    expect(content).toContain('name: grok');
+    expect(content).toContain('version: 1.0.0');
+    expect(content).toContain('allowed-tools:');
+  });
+
+  test('grok/SKILL.md contains all three modes', () => {
+    const content = fs.readFileSync(path.join(ROOT, 'grok', 'SKILL.md'), 'utf-8');
+    expect(content).toContain('Step 2A: Review Mode');
+    expect(content).toContain('Step 2B: Challenge Mode');
+    expect(content).toContain('Step 2C: Consult Mode');
+  });
+
+  test('grok/SKILL.md contains the read-only Grok safety boundary', () => {
+    const content = fs.readFileSync(path.join(ROOT, 'grok', 'SKILL.md'), 'utf-8');
+    expect(content).toContain('--no-auto-update --no-alt-screen --permission-mode plan --no-subagents');
+    expect(content).toContain('--tools ""');
+    expect(content).toContain('--deny Bash --deny Edit --deny Write');
+    expect(content).toContain('--prompt-file');
+    expect(content).toContain('Never pass `--always-approve`');
+  });
+
+  test('grok/SKILL.md does not pass effort by default', () => {
+    const content = fs.readFileSync(path.join(ROOT, 'grok', 'SKILL.md'), 'utf-8');
+    expect(content).toContain('Default calls do not pass `--effort`');
+    expect(content).not.toContain('--effort high');
+    expect(content).not.toContain('--effort medium');
+    expect(content).toContain('--model grok-build --effort xhigh');
+  });
+});
+
 // --- Trigger phrase validation ---
 
 describe('Skill trigger phrases', () => {
@@ -1779,7 +1814,7 @@ describe('Skill trigger phrases', () => {
     'qa', 'qa-only', 'ship', 'review', 'investigate', 'office-hours',
     'plan-ceo-review', 'plan-eng-review', 'plan-design-review',
     'design-review', 'design-consultation', 'retro', 'document-release',
-    'codex', 'browse', 'setup-browser-cookies', 'scrape',
+    'codex', 'grok', 'browse', 'setup-browser-cookies', 'scrape',
   ];
 
   for (const skill of SKILLS_REQUIRING_TRIGGERS) {

@@ -192,6 +192,7 @@ The same `/qa` and `/qa-only` commands test CLIs, APIs, jobs, workers and webhoo
 | Skill | What it does |
 |-------|-------------|
 | `/codex` | **Second Opinion** — independent code review from OpenAI Codex CLI. Review, challenge, and consult modes. Available on every harness except Codex. |
+| `/grok` | **Grok Outside Voice** — independent review from xAI Grok Build CLI. Three modes: review, adversarial challenge, and read-only consultation. |
 | `/claude-code` | **Second Opinion** — independent code review from Claude Code. Review, challenge, and consult modes, with session continuity for consultation. Available on every harness except Claude Code. |
 | `/careful` | **Safety Guardrails** — warns before destructive commands (rm -rf, DROP TABLE, force-push). Say "be careful" to activate. Override any MEDIUM warning; root/home recursive deletes and default-branch force-pushes are hard-denied. |
 | `/freeze` | **Edit Lock** — restrict file edits to one directory. Prevents accidental changes outside scope while debugging. |
