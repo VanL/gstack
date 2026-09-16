@@ -121,6 +121,23 @@ describe('bin/gstack-fork-upgrade', () => {
     expect(run(['git', 'status', '--porcelain', '--untracked-files=no'], fixture)).toBe('');
   });
 
+  test.skipIf(process.platform === 'win32')('resolves PATH symlinks before loading the Grok overlay source', () => {
+    const fixture = tempDir();
+    const binDir = path.join(tempDir(), 'bin');
+    const launcher = path.join(binDir, 'gstack-fork-upgrade');
+    fs.mkdirSync(path.join(fixture, 'home'));
+    writeUpstreamFixture(fixture, '1.0.0.0');
+    run(['git', 'init', '-q', '-b', 'main'], fixture);
+    commitAll(fixture, 'v1');
+    fs.mkdirSync(binDir, { recursive: true });
+    fs.symlinkSync(UPGRADE, launcher);
+
+    const output = run(['bash', launcher, '--overlay-only', fixture], fixture, { HOME: path.join(fixture, 'home') });
+
+    expect(output).toContain('GROK_OVERLAY=installed-local');
+    expect(fs.readFileSync(path.join(fixture, 'grok', 'SKILL.md.tmpl'), 'utf-8')).toBe(LOCAL_GROK);
+  });
+
   test('does not replace Grok once upstream provides its own skill', () => {
     const fixture = tempDir();
     fs.mkdirSync(path.join(fixture, 'home'));
@@ -167,7 +184,7 @@ describe('bin/gstack-fork-upgrade', () => {
     // Upstream's reinstall runs without the overlay; the overlay pass runs setup again with it.
     expect(fs.readFileSync(path.join(home, 'setup-calls'), 'utf-8').trim().split('\n')).toEqual([
       '--refresh-registered',
-      '--host auto --plan-tune-hooks=prompt',
+      '--host auto --plan-tune-hooks=prompt -q',
     ]);
     expect(fs.readFileSync(path.join(home, 'setup-state'), 'utf-8').trim().split('\n')).toEqual([
       'grok=no vendor=no',
