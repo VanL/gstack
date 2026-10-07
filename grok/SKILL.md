@@ -216,31 +216,31 @@ Every later bash block that creates temp files should run the same `eval` first.
 
 ## Safety Boundary
 
-Grok Build can edit files and run tools. This skill is for an outside voice, not
-for implementation. Default to read-only behavior.
-
-All Grok calls in this skill MUST use:
+Every review, challenge and consult call MUST use the installed launcher:
 
 ```bash
---no-auto-update --no-alt-screen --permission-mode plan --no-subagents
+~/.claude/skills/gstack/bin/gstack-grok --mode review
 ```
 
-Review and challenge mode must embed the diff in the prompt and add:
+Use `--mode challenge` or `--mode consult` for those modes.
 
-```bash
---tools ""
-```
+The launcher enforces plan permissions, no subagents, no leader, disabled file
+acceleration and web tools. Review and challenge deny every tool. Consult permits
+only Read, Glob and Grep, removes MCP meta-tools and denies all MCP tools.
 
-Consult mode may let Grok inspect the repo, but it must deny shell and write
-tools:
+On Linux it uses Grok's native `--sandbox read-only`. On macOS it applies one
+external read-only Seatbelt policy before running the verified Grok 1.0.44 build.
+This avoids native runtime-socket symlink resolution while denying all Unix
+socket connections except the system DNS service. Workspace, hook/config/trust
+sources and the launcher cannot be changed; Grok state and system temp writes
+remain available. Local IPC integrations are unavailable. Enforced nonempty
+requirements or unknown Grok builds refuse startup and need a launcher review.
 
-```bash
---deny Bash --deny Edit --deny Write
-```
-
-Never pass `--always-approve`. Never use `--permission-mode bypassPermissions`,
-`dontAsk`, or `auto`. If Grok rejects any safety flag, stop and show the stderr.
-Do not rerun without `--permission-mode plan`.
+Never pass `--always-approve`. Never run the session directly with `grok` or
+retry without the launcher. On macOS the session records native `sandbox=off`;
+that does not describe its external containment. Always resume through the
+launcher. If a previous session has an incompatible sandbox profile, stop and
+start a fresh launcher session rather than edit its state.
 
 All prompts MUST be written to a temp file and passed with `--prompt-file`.
 Never interpolate user text directly into the shell command.
@@ -259,8 +259,8 @@ Parse the user's input:
    - Otherwise, ask what to ask Grok.
 4. `/grok <anything else>` - Consult mode (Step 2C)
 
-If the user includes `-m <model>` or `--model <model>`, pass that model flag
-through to Grok only if it matches `^[A-Za-z0-9._:-]+$`. Otherwise stop and ask
+If the user includes `-m <model>` or `--model <model>`, normalize it to `GROK_MODEL_ARGS=(--model <model>)` and pass it
+through the launcher only if it matches `^[A-Za-z0-9._:-]+$`. Otherwise stop and ask
 for a plain model id. If no model is provided, use Grok's configured default
 model.
 
@@ -283,17 +283,16 @@ RESP_FILE=$(mktemp "$TMP_ROOT/gstack-grok-response-XXXXXX.txt")
 ERR_FILE=$(mktemp "$TMP_ROOT/gstack-grok-error-XXXXXX.txt")
 ```
 
-Run Grok in review/challenge mode:
+Run Grok in review/challenge mode (use `--mode challenge` for challenge):
 
 ```bash
 _REPO_ROOT=$(git rev-parse --show-toplevel) || { echo "ERROR: not in a git repo" >&2; exit 1; }
 GROK_MODEL_ARGS=()
 GROK_EFFORT_ARGS=()
 # Populate from Step 1 only after validating the model id. Leave empty by default.
-grok --no-auto-update --no-alt-screen --cwd "$_REPO_ROOT" \
-  --permission-mode plan --no-subagents --tools "" \
+~/.claude/skills/gstack/bin/gstack-grok --mode review --cwd "$_REPO_ROOT" \
   "${GROK_MODEL_ARGS[@]}" "${GROK_EFFORT_ARGS[@]}" \
-  --max-turns 3 --output-format plain \
+  --max-turns 3 \
   --prompt-file "$PROMPT_FILE" > "$RESP_FILE" 2>"$ERR_FILE"
 _GROK_EXIT=$?
 if [ "$_GROK_EXIT" != "0" ]; then
@@ -309,11 +308,9 @@ _REPO_ROOT=$(git rev-parse --show-toplevel) || { echo "ERROR: not in a git repo"
 GROK_MODEL_ARGS=()
 GROK_EFFORT_ARGS=()
 # Populate from Step 1 only after validating the model id. Leave empty by default.
-grok --no-auto-update --no-alt-screen --cwd "$_REPO_ROOT" \
-  --permission-mode plan --no-subagents \
-  --deny Bash --deny Edit --deny Write \
+~/.claude/skills/gstack/bin/gstack-grok --mode consult --cwd "$_REPO_ROOT" \
   "${GROK_MODEL_ARGS[@]}" "${GROK_EFFORT_ARGS[@]}" \
-  --max-turns 8 --output-format plain \
+  --max-turns 8 \
   --prompt-file "$PROMPT_FILE" > "$RESP_FILE" 2>"$ERR_FILE"
 _GROK_EXIT=$?
 if [ "$_GROK_EXIT" != "0" ]; then
@@ -327,7 +324,7 @@ user:
 "Grok authentication failed. Run `grok login` or export `XAI_API_KEY`."
 
 If stderr contains `does not support parameter reasoningEffort`, rerun once with
-the same safety flags and model, but without `GROK_EFFORT_ARGS`. Tell the user
+the same launcher and model, but without `GROK_EFFORT_ARGS`. Tell the user
 the selected Grok model rejected `--effort`.
 
 Cleanup at the end of every mode:

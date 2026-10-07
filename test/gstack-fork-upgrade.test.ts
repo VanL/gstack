@@ -6,6 +6,13 @@ import * as path from 'path';
 const ROOT = path.resolve(import.meta.dir, '..');
 const UPGRADE = path.join(ROOT, 'bin', 'gstack-fork-upgrade');
 const LOCAL_GROK = fs.readFileSync(path.join(ROOT, 'grok', 'SKILL.md.tmpl'), 'utf-8');
+const LOCAL_LAUNCHER = fs.readFileSync(path.join(ROOT, 'bin', 'gstack-grok'), 'utf-8');
+
+function expectLauncher(install: string): void {
+  const launcher = path.join(install, 'bin', 'gstack-grok');
+  expect(fs.readFileSync(launcher, 'utf-8')).toBe(LOCAL_LAUNCHER);
+  expect(fs.statSync(launcher).mode & 0o111).not.toBe(0);
+}
 
 const gitIdentity = {
   GIT_AUTHOR_NAME: 'gstack test',
@@ -118,6 +125,7 @@ describe('bin/gstack-fork-upgrade', () => {
     expect(output).toContain('GROK_OVERLAY=installed-local');
     expect(fs.readFileSync(path.join(fixture, 'grok', 'SKILL.md.tmpl'), 'utf-8')).toBe(LOCAL_GROK);
     expect(fs.statSync(path.join(fixture, 'bin', 'gstack-fork-upgrade')).mode & 0o111).not.toBe(0);
+    expectLauncher(fixture);
     expect(run(['git', 'status', '--porcelain', '--untracked-files=no'], fixture)).toBe('');
   });
 
@@ -192,6 +200,7 @@ describe('bin/gstack-fork-upgrade', () => {
     ]);
     expect(fs.readFileSync(path.join(install, 'grok', 'SKILL.md.tmpl'), 'utf-8')).toBe(LOCAL_GROK);
     expect(fs.existsSync(path.join(install, 'bin', 'gstack-fork-upgrade'))).toBe(true);
+    expectLauncher(install);
     expect(fs.readFileSync(path.join(install, 'bin', 'gstack-upgrade'), 'utf-8')).toContain('UPGRADE_REFUSED');
     expect(fs.existsSync(path.join(install, 'bin', 'dev-setup'))).toBe(true);
     expect(run(['git', 'status', '--porcelain', '--untracked-files=no'], install)).toBe('');

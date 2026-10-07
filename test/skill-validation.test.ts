@@ -1788,9 +1788,11 @@ describe('Grok skill', () => {
 
   test('grok/SKILL.md contains the read-only Grok safety boundary', () => {
     const content = fs.readFileSync(path.join(ROOT, 'grok', 'SKILL.md'), 'utf-8');
-    expect(content).toContain('--no-auto-update --no-alt-screen --permission-mode plan --no-subagents');
-    expect(content).toContain('--tools ""');
-    expect(content).toContain('--deny Bash --deny Edit --deny Write');
+    expect(content).toContain('bin/gstack-grok --mode review');
+    expect(content).toContain('bin/gstack-grok --mode consult');
+    expect(content).toContain('Always resume through the');
+    expect(content).toContain('retry without the launcher');
+    expect(content).toContain('external read-only Seatbelt policy');
     expect(content).toContain('--prompt-file');
     expect(content).toContain('Never pass `--always-approve`');
   });

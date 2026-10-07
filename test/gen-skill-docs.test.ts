@@ -3039,12 +3039,10 @@ describe('Codex generation (--host codex)', () => {
 
   test('Codex output includes Grok outside-voice skill with read-only boundary', () => {
     const content = readExternalSkillUnion(EXTERNAL_OUT, '.agents', 'grok');
-    expect(content).toContain('grok --no-auto-update');
-    expect(content).toContain('--no-alt-screen');
-    expect(content).toContain('--permission-mode plan');
-    expect(content).toContain('--no-subagents');
-    expect(content).toContain('--tools ""');
-    expect(content).toContain('--deny Bash --deny Edit --deny Write');
+    expect(content).toContain('bin/gstack-grok --mode review');
+    expect(content).toContain('bin/gstack-grok --mode consult');
+    expect(content).toContain('external read-only Seatbelt policy');
+    expect(content).toContain('retry without the launcher');
     expect(content).toContain('--prompt-file "$PROMPT_FILE"');
     expect(content).toContain('Never pass `--always-approve`');
   });
@@ -3534,11 +3532,10 @@ describe('Parameterized host smoke tests', () => {
         const skillMd = path.join(hostDir, 'gstack-grok', 'SKILL.md');
         expect(fs.existsSync(skillMd)).toBe(true);
         const content = fs.readFileSync(skillMd, 'utf-8');
-        expect(content).toContain('grok --no-auto-update');
-        expect(content).toContain('--permission-mode plan');
-        expect(content).toContain('--no-subagents');
-        expect(content).toContain('--tools ""');
-        expect(content).toContain('--deny Bash --deny Edit --deny Write');
+        expect(content).toContain('bin/gstack-grok --mode review');
+        expect(content).toContain('bin/gstack-grok --mode consult');
+        expect(content).toContain('external read-only Seatbelt policy');
+        expect(content).toContain('retry without the launcher');
       });
 
       test('--dry-run freshness check passes', () => {

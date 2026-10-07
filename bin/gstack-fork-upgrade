@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Upgrade the canonical ~/.agents gstack install with upstream's own
 # bin/gstack-upgrade, refresh host links, and reapply this fork's local
-# overlay (the /grok skill, which upstream does not ship). Overlay files stay
-# untracked in the install, and any tracked file the overlay's regeneration
-# touches is restored, so upstream's updaters always see a clean checkout.
+# overlay (the /grok skill and its bin/gstack-grok launcher, which upstream
+# does not ship). Overlay files stay untracked in the install, and any
+# tracked file the overlay's regeneration touches is restored, so upstream's
+# updaters always see a clean checkout.
 set -euo pipefail
 
 SCRIPT_SOURCE="${BASH_SOURCE[0]:-$0}"
@@ -20,7 +21,7 @@ SCRIPT_DIR="$(cd -P "$(dirname "$SCRIPT_SOURCE")" && pwd)"
 # Untracked files this helper owns inside the install. They are removed before
 # upstream fast-forwards (so a release that starts tracking one is never
 # blocked) and reinstalled afterwards unless upstream now tracks them.
-OVERLAY_PATHS=(bin/gstack-fork-upgrade grok/SKILL.md.tmpl grok/SKILL.md)
+OVERLAY_PATHS=(bin/gstack-fork-upgrade bin/gstack-grok grok/SKILL.md.tmpl grok/SKILL.md)
 
 # The pre-rename helper replaced upstream's bin/gstack-upgrade and recorded
 # its tracked edits here.
@@ -135,11 +136,16 @@ apply_grok_overlay() {
 
 install_overlay_files() {
   local install_dir="$1"
+  local name
   mkdir -p "$install_dir/bin"
-  if [ "$SCRIPT_DIR" != "$(cd "$install_dir/bin" && pwd -P)" ]; then
-    cp "$SCRIPT_DIR/gstack-fork-upgrade" "$install_dir/bin/gstack-fork-upgrade"
-  fi
-  chmod +x "$install_dir/bin/gstack-fork-upgrade"
+  for name in gstack-fork-upgrade gstack-grok; do
+    is_tracked "$install_dir" "bin/$name" && continue
+    [ -f "$SCRIPT_DIR/$name" ] || { echo "gstack-fork-upgrade: overlay source $SCRIPT_DIR/$name is missing" >&2; return 1; }
+    if [ "$SCRIPT_DIR" != "$(cd "$install_dir/bin" && pwd -P)" ]; then
+      cp "$SCRIPT_DIR/$name" "$install_dir/bin/$name"
+    fi
+    chmod +x "$install_dir/bin/$name"
+  done
 }
 
 apply_overlay() {
@@ -228,9 +234,10 @@ case "${1:-}" in
     if [ "${GSTACK_UPGRADE_TRAMPOLINED:-0}" != "1" ]; then
       trampoline_dir="$(mktemp -d "${TMPDIR:-/tmp}/gstack-fork-upgrade-run-XXXXXX")"
       cp "$SCRIPT_DIR/gstack-fork-upgrade" "$trampoline_dir/gstack-fork-upgrade"
+      cp "$SCRIPT_DIR/gstack-grok" "$trampoline_dir/gstack-grok"
       mkdir -p "$trampoline_dir/local-overlays/grok"
       cp "$(grok_overlay_source)" "$trampoline_dir/local-overlays/grok/SKILL.md.tmpl"
-      chmod +x "$trampoline_dir/gstack-fork-upgrade"
+      chmod +x "$trampoline_dir/gstack-fork-upgrade" "$trampoline_dir/gstack-grok"
       GSTACK_UPGRADE_TRAMPOLINED=1 GSTACK_UPGRADE_TRAMPOLINE_DIR="$trampoline_dir" \
         exec "$trampoline_dir/gstack-fork-upgrade"
     fi
