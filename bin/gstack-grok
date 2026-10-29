@@ -1,4 +1,4 @@
-#!/usr/bin/env -S bun --config=/dev/null --no-env-file --no-macros --no-install
+#!/usr/bin/env -S bun --no-env-file --config=/dev/null
 /** Outside-review launcher. macOS uses ONE authoritative Seatbelt sandbox.
  * Native off is never a fallback: every Grok process runs inside sandbox-exec.
  * Linux retains Grok's native read-only profile. See docs/specs/2026-10-07-grok-read-only-launcher.md.

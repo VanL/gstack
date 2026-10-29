@@ -54,7 +54,7 @@ for (const p of q.writes || []) attempt(p, () => fs.writeFileSync(p,'changed'));
 for (const p of q.unlinks || []) attempt('unlink:'+p, () => fs.unlinkSync(p));
 for (const p of q.renames || []) attempt('rename:'+p, () => fs.renameSync(p,p+'.moved'));
 for (const p of q.chmods || []) attempt('chmod:'+p, () => fs.chmodSync(p,0o777));
-if (q.childWrite) { const r = Bun.spawnSync([process.execPath,'-e', 'require("fs").writeFileSync(process.argv[1],"child")',q.childWrite], {stdout:'pipe',stderr:'pipe'}); result.writes.child=r.exitCode===0; }
+if (q.childWrite) { const r = Bun.spawnSync([process.execPath,'-e', 'require("fs").writeFileSync(process.argv[1],"child")',q.childWrite], {stdout:'pipe',stderr:'pipe',timeout:30000}); result.writes.child=r.exitCode===0; }
 async function connect(p) { return await new Promise(resolve => { const c=net.createConnection(p); c.once('connect',()=>{ c.destroy(); resolve(true); }); c.once('error',()=>resolve(false)); c.setTimeout(2000,()=>{c.destroy();resolve(false)}); }); }
 if (q.tcp) result.tcp=await connect({host:'127.0.0.1',port:q.tcp});
 for (const p of q.sockets || []) result.sockets[p]=await connect(p);
@@ -140,6 +140,7 @@ describe.skipIf(!supported)('Grok launcher contract', () => {
       env: f.environment,
       stdout: 'pipe',
       stderr: 'pipe',
+      timeout: 30_000,
     });
     expect(raw.exitCode).toBe(0);
     expect(raw.stdout.toString().trim()).toBe('loaded');
@@ -284,6 +285,7 @@ describe.skipIf(process.platform !== 'darwin')('real macOS containment', () => {
         env: f.environment,
         stdout: 'pipe',
         stderr: 'pipe',
+        timeout: 30_000,
       });
       expect(raw.exitCode).toBe(0);
       expect(JSON.parse(raw.stdout.toString()).writes[workspace]).toBe(true);

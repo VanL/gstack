@@ -140,6 +140,8 @@ const SCANNER_EXEMPT: Record<string, string> = {
     'user-invoked installer: bodyless HEAD reachability probe to github.com + clone of the public gbrain repo (user-directed install; no gstack state leaves the machine)',
   'bin/gstack-capy-install':
     'user-invoked installer that runs before any gstack checkout exists (so the egress lib is not yet available): clone of the public gstack repo and a download of the pinned Bun release archive from GitHub, SHA-256 verified before anything is installed; no gstack state leaves the machine',
+  'bin/gstack-fork-upgrade':
+    'user-invoked fork helper: its only network op is the first-install clone of the public gstack repo, which runs before any install (and so its egress lib) exists; every later fetch goes through the install\'s own receipted bin/gstack-upgrade; no gstack state leaves the machine',
   'bin/gstack-node-runtime.sh':
     'sourced only by bin/gstack-capy-install (same pre-checkout installer context): downloads the project-pinned Node release archive and its SHASUMS256.txt from nodejs.org, SHA-256 checked before anything is installed; bodyless GETs, no gstack state leaves the machine',
   'bin/gstack-doctor-check.sh':

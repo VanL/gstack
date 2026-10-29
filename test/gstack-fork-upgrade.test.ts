@@ -31,6 +31,7 @@ function spawn(command: string[], cwd: string, env: Record<string, string> = {})
     env: { ...process.env, ...gitIdentity, ...env },
     stdout: 'pipe',
     stderr: 'pipe',
+    timeout: 120_000,
   });
   return { exitCode: result.exitCode, stdout: result.stdout.toString(), stderr: result.stderr.toString() };
 }

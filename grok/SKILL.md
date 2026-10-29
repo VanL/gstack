@@ -202,15 +202,14 @@ If `AUTH_MISSING`, stop and tell the user:
 
 ## Step 0.5: Resolve Portable Roots
 
-Before creating temp files, resolve `$PLAN_ROOT` and `$TMP_ROOT` through
-`bin/gstack-paths`:
+Before creating temp files, resolve `$TMP_ROOT` through `bin/gstack-paths`:
 
 ```bash
-eval "$(~/.claude/skills/gstack/bin/gstack-paths)"
+TMP_ROOT=$(~/.claude/skills/gstack/bin/gstack-paths --get TMP_ROOT); : "${TMP_ROOT:?gstack-paths failed; reinstall with ./setup or /gstack-upgrade}"
 echo "TMP_ROOT: $TMP_ROOT"
 ```
 
-Every later bash block that creates temp files should run the same `eval` first.
+Every later bash block that creates temp files should resolve `TMP_ROOT` the same way first.
 
 ---
 
@@ -277,10 +276,10 @@ also provided a model; with an explicit model, pass that model plus
 Create temp files:
 
 ```bash
-eval "$(~/.claude/skills/gstack/bin/gstack-paths)"
-PROMPT_FILE=$(mktemp "$TMP_ROOT/gstack-grok-prompt-XXXXXX.txt")
-RESP_FILE=$(mktemp "$TMP_ROOT/gstack-grok-response-XXXXXX.txt")
-ERR_FILE=$(mktemp "$TMP_ROOT/gstack-grok-error-XXXXXX.txt")
+TMP_ROOT=$(~/.claude/skills/gstack/bin/gstack-paths --get TMP_ROOT); : "${TMP_ROOT:?gstack-paths failed; reinstall with ./setup or /gstack-upgrade}"
+PROMPT_FILE=$(mktemp "$TMP_ROOT/gstack-grok-prompt-XXXXXX")
+RESP_FILE=$(mktemp "$TMP_ROOT/gstack-grok-response-XXXXXX")
+ERR_FILE=$(mktemp "$TMP_ROOT/gstack-grok-error-XXXXXX")
 ```
 
 Run Grok in review/challenge mode (use `--mode challenge` for challenge):
@@ -344,10 +343,10 @@ Before starting this mode, create temp files using the Shared Helpers block.
 1. Fetch the base branch and capture the diff:
 
 ```bash
-eval "$(~/.claude/skills/gstack/bin/gstack-paths)"
+TMP_ROOT=$(~/.claude/skills/gstack/bin/gstack-paths --get TMP_ROOT); : "${TMP_ROOT:?gstack-paths failed; reinstall with ./setup or /gstack-upgrade}"
 _REPO_ROOT=$(git rev-parse --show-toplevel) || { echo "ERROR: not in a git repo" >&2; exit 1; }
 cd "$_REPO_ROOT"
-DIFF_FILE=$(mktemp "$TMP_ROOT/gstack-grok-diff-XXXXXX.patch")
+DIFF_FILE=$(mktemp "$TMP_ROOT/gstack-grok-diff-XXXXXX")
 git fetch origin <base> --quiet 2>/dev/null || true
 git diff "origin/<base>...HEAD" > "$DIFF_FILE" 2>/dev/null || git diff "<base>...HEAD" > "$DIFF_FILE" 2>/dev/null || git diff > "$DIFF_FILE"
 ```

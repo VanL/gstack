@@ -8,5 +8,15 @@
     "file": "codex/SKILL.md.tmpl",
     "text": "\"Codex returned no response. Check stderr for errors.\"",
     "reason": "The /codex skill's own direct CLI empty-response error, not an outside-voice fallback inside another skill."
+  },
+  {
+    "file": "grok/SKILL.md.tmpl",
+    "text": "\"Grok authentication failed. Run `grok login` or export `XAI_API_KEY`.\"",
+    "reason": "The /grok skill's own direct CLI auth error, not an outside-voice fallback inside another skill."
+  },
+  {
+    "file": "grok/SKILL.md.tmpl",
+    "text": "- Empty response: tell the user \"Grok returned no response. Check stderr for errors.\"",
+    "reason": "The /grok skill's own direct CLI empty-response error, not an outside-voice fallback inside another skill."
   }
 ]
