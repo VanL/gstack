@@ -175,6 +175,7 @@ export const SKILL_REQUIREMENTS: Readonly<Record<string, SkillRequirement>> = {
   'document-release': CLAUDE_ONLY,
   'eval-plan': CLAUDE_ONLY,
   freeze: CLAUDE_ONLY,
+  grok: CLAUDE_ONLY,
   'gstack-upgrade': CLAUDE_ONLY,
   guard: CLAUDE_ONLY,
   health: CLAUDE_ONLY,

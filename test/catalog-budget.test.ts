@@ -88,8 +88,15 @@ import { skillCensus } from './helpers/skill-census';
  * New-skill ratchet: previous ceiling 1,359 + ceil(135 / 4) = 1,393
  * token-equivalents (5,572 bytes), leaving 10 bytes. Existing descriptions
  * are unchanged.
+ *   ref     grok addition on base 9f44f18 (2026-10-29), VanL/gstack fork
+ *   result  pre-addition aggregate 5,562 bytes; grok adds 54 bytes
+ *           (name plus the one-sentence catalog lead), yielding 5,616 bytes
+ *           = 1,404 token-equivalents including the root router alias.
+ * New-skill ratchet: previous ceiling 1,393 + ceil(54 / 4) = 1,407
+ * token-equivalents (5,628 bytes), leaving 12 bytes. Existing descriptions
+ * are unchanged.
  */
-const CATALOG_BUDGET_TOKEN_EQUIVALENTS = 1_393;
+const CATALOG_BUDGET_TOKEN_EQUIVALENTS = 1_407;
 
 // Largest today: design-consultation at 229 bytes. A description that needs
 // more than 260 bytes is a body paragraph, not a catalog entry.
