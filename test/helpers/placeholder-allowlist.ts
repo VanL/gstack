@@ -192,6 +192,7 @@ export const IDENTIFIER_PLACEHOLDERS: Record<string, IdentifierGrammar> = {
   // A3 group 2 (Codex prompts and misc): mktemp basenames, mode switches,
   // the benchmark prompt path and the sync-gbrain orchestrator flags.
   '<focus-file-name>': { grammar: ID, what: 'basename of the mktemp Codex review focus file printed by the free-text block' },
+  '<grok-text-file-name>': { grammar: ID, what: 'basename of the mktemp Grok instructions, focus or question file printed by the free-text block' },
   '<receipt line>': { grammar: /^OFFICE_HOURS_VERDICT round=[1-3] sha256=[0-9a-f]{64} path=\/[^'"`$\\\n]+$/, what: 'office-hours reviewer verdict receipt (one line)', quoted: true },
   '<body-top-file-name>': { grammar: ID, what: 'basename of the mktemp PR body draft (through ## Documentation) printed by the free-text block' },
   '<body-rest-file-name>': { grammar: ID, what: 'basename of the mktemp PR body draft (after the documentation section) printed by the free-text block' },
